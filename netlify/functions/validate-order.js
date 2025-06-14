@@ -93,21 +93,74 @@ function countUploadedPhotos(properties) {
     return 0;
   }
 
-  let photoCount = 0;
+  // Compter seulement les propriétés uniques (éviter doublons thumbnail/original)
+  const uniquePhotos = new Set();
   
   properties.forEach(prop => {
     if (prop.name && prop.name.toLowerCase().includes('photo') && 
         prop.value && (prop.value.includes('uploadkit') || prop.value.includes('cdn'))) {
-      photoCount++;
+      
+      // Extraire un identifiant unique de l'URL pour éviter les doublons
+      const photoId = prop.name.match(/\d+/) || prop.value.match(/([a-f0-9-]{36})/);
+      if (photoId) {
+        uniquePhotos.add(photoId[0]);
+      }
     }
   });
 
-  console.log(`📸 ${photoCount} photos détectées dans les propriétés`);
+  const photoCount = uniquePhotos.size;
+  console.log(`📸 ${photoCount} photos uniques détectées dans les propriétés`);
   return photoCount;
 }
 
 async function cancelOrder(orderId, reason) {
-  console.log('⚠️ Commande devrait être annulée:', orderId, reason);
-  // Annulation désactivée pour test - à réactiver plus tard
-  return true;
+  try {
+    const url = `https://${CONFIG.SHOPIFY_STORE_DOMAIN}/admin/api/2024-10/orders/${orderId}/cancel.json`;
+    
+    // Utilisation de https natif Node.js au lieu de fetch
+    const postData = JSON.stringify({
+      amount: 0,
+      currency: 'EUR',
+      reason: 'fraud',
+      email: true,
+      refund: true
+    });
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': CONFIG.SHOPIFY_ACCESS_TOKEN,
+        'Content-Type': 'application/json',
+        'Content-Length': postData.length
+      }
+    };
+
+    return new Promise((resolve, reject) => {
+      const req = https.request(url, options, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            console.log('✅ Commande annulée avec succès');
+            resolve(true);
+          } else {
+            console.error('❌ Erreur annulation:', res.statusCode, data);
+            resolve(false);
+          }
+        });
+      });
+
+      req.on('error', (error) => {
+        console.error('💥 Erreur lors de l\'annulation:', error);
+        resolve(false);
+      });
+
+      req.write(postData);
+      req.end();
+    });
+
+  } catch (error) {
+    console.error('💥 Erreur lors de l\'annulation:', error);
+    return false;
+  }
 }
