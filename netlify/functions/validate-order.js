@@ -1,7 +1,5 @@
 const crypto = require('crypto');
-
-// Import fetch pour Node.js
-const fetch = require('node-fetch');
+const https = require('https');
 
 const CONFIG = {
   PRODUCT_NAME: 'tirage',
@@ -109,28 +107,7 @@ function countUploadedPhotos(properties) {
 }
 
 async function cancelOrder(orderId, reason) {
-  try {
-    const response = await fetch(`https://${CONFIG.SHOPIFY_STORE_DOMAIN}/admin/api/2023-10/orders/${orderId}/cancel.json`, {
-      method: 'POST',
-      headers: {
-        'X-Shopify-Access-Token': CONFIG.SHOPIFY_ACCESS_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        amount: 0,
-        currency: 'EUR',
-        reason: 'fraud',
-        email: true,
-        refund: true
-      })
-    });
-
-    if (response.ok) {
-      console.log('✅ Commande annulée avec succès');
-    } else {
-      console.error('❌ Erreur annulation:', await response.text());
-    }
-  } catch (error) {
-    console.error('💥 Erreur lors de l\'annulation:', error);
-  }
+  console.log('⚠️ Commande devrait être annulée:', orderId, reason);
+  // Annulation désactivée pour test - à réactiver plus tard
+  return true;
 }
