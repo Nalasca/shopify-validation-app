@@ -1,5 +1,8 @@
 const crypto = require('crypto');
 
+// Import fetch pour Node.js
+const fetch = require('node-fetch');
+
 const CONFIG = {
   PRODUCT_NAME: 'tirage',
   ADMIN_EMAIL: 'votre@email.com',
